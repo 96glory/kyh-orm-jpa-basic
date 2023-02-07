@@ -15,6 +15,13 @@
   </properties>
 
   <dependencies>
+    <!-- jdk 11 이상은 jaxb 라이브러리를 따로 추가해주어야 한다. https://roadrunner.tistory.com/645 -->
+    <dependency>
+      <groupId>javax.xml.bind</groupId>
+      <artifactId>jaxb-api</artifactId>
+      <version>2.3.0</version>
+    </dependency>
+
     <!-- JPA 하이버네이트 -->
     <dependency>
       <groupId>org.hibernate</groupId>
