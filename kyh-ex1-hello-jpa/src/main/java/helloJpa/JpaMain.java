@@ -18,27 +18,18 @@ public class JpaMain {
         tx.begin();
 
         try {
-//            // 회원 등록
-//            Member member = new Member();
-//            member.setId(1L);
-//            member.setName("HelloA");
-//            em.persist(member);
+            // member는 비영속 상태
+            Member member = new Member();
+            member.setId(101L);
+            member.setName("HelloJPA");
 
-//            // 회원 수정
-//            Member findMember = em.find(Member.class, 1L);
-//            System.out.println("findMember.id = " + findMember.getId());
-//            System.out.println("findMember.name = " + findMember.getName());
-//            findMember.setName("HelloHello");
-//            em.persist(findMember);
+            // member는 영속 상태 => 101L의 member는 1차 캐시에 저장된다.
+            System.out.println("=== BEFORE ===");
+            em.persist(member);
+            System.out.println("=== AFTER ===");
 
-            // JPQL을 활용하여 회원 전체 조회
-            List<Member> result = em.createQuery("select m from Member as m", Member.class)
-                .getResultList();
-
-            for (Member mem : result) {
-                System.out.println("findMember.id = " + mem.getId());
-                System.out.println("findMember.name = " + mem.getName());
-            }
+            // 아래 find할 때 SELECT 쿼리를 수행하지 않고, 1차 캐시의 member를 가져오게 된다.
+            Member findMember = em.find(Member.class, 101L);
 
             tx.commit();
         } catch (Exception e) {
