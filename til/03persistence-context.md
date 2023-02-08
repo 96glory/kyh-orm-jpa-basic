@@ -83,7 +83,7 @@ System.out.println(a == b); // true
 
 ### 트랜잭션을 지원하는 쓰기 지연(transactional write-behind)
 
-- 영속하는 순간 데이터베이스에 DDL 쿼리를 수행하는 것이 아니라, EntityManager가 생성한 EntityTransaction에서 커밋을 수행하는 시점에 DDL 쿼리를 수행한다.
+- 영속하는 순간 데이터베이스에 DML 쿼리를 수행하는 것이 아니라, EntityManager가 생성한 EntityTransaction에서 커밋을 수행하는 시점에 DML 쿼리를 수행한다.
 
 ```java
 EntityManager em = emf.createEntityManager();
@@ -105,7 +105,7 @@ transaction.commit(); // [트랜잭션] 커밋
 
 ### 변경 감지 (dirty checking)
 
-- `transaction.commit()` 수행 시점에, 1차 캐시의 Entity와 데이터베이스에서 최초 조회한 값인 스냅샷과 비교하여, 변경 감지를 한다. 변경된 값들이 있다면, 데이터베이스의 값을 1차 캐시의 Entity로 바꾸기 위한 DDL을 만들어 데이터베이스로 쿼리를 수행한다.
+- `transaction.commit()` 수행 시점에, 1차 캐시의 Entity와 데이터베이스에서 최초 조회한 값인 스냅샷과 비교하여, 변경 감지를 한다. 변경된 값들이 있다면, 데이터베이스의 값을 1차 캐시의 Entity로 바꾸기 위한 DML을 만들어 데이터베이스로 쿼리를 수행한다.
 
 - ![dirty checking](./image/03007.png)
 - ```java
