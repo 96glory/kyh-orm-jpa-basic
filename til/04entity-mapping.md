@@ -134,3 +134,117 @@ public class Member {
     // Getter, Setter, ...
 }
 ```
+
+## 기본키 매핑
+
+- `@Id`, `@GeneratedValue`
+
+### 모든 기본키를 직접 할당할 경우
+
+- `@Id`만 사용한다.
+
+```java
+@Id
+private String id;
+```
+
+### 자동 생성 기본키를 사용할 경우
+
+- `@Id`, `@GeneratedValue`를 같이 사용한다.
+
+```java
+@Id @GeneratedValue(strategy = GenerationType.AUTO)
+private Long id;
+```
+
+### `@GeneratedValue`의 전략
+
+#### `GenerationType.AUTO`
+
+- 기본값
+- DB 방언에 따라 IDENTITY, SEQUENCE, TABLE 중 하나의 전략을 선택한다.
+  - MySQL -> IDENTITY
+  - Oracle -> SEQUENCE
+
+#### `GenerationType.IDENTITY`
+
+```java
+@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+private Long id;
+```
+
+- PK 생성을 데이터베이스에 위임한다.
+- 주로 MySQL, PostgreSQL, SQL Server, DB2에서 사용한다.
+- JPA는 보통 트랜잭션 커밋 시점에 INSERT 쿼리를 실행하나, MySQL의 AUTO_INCREMENT 같은 경우 INSERT 쿼리를 실행한 이후에 PK 값을 알 수 있다. 따라서, **영속성 컨텍스트에 관리되는 시점(`em.persist()`)에 즉시 INSERT 쿼리를 수행**하여 1차 캐시에 식별자를 저장한다.
+
+#### `GenerationType.SEQUENCE`
+
+```java
+@Entity
+@SequenceGenerator(
+    name = "MEMBER_SEQ_GENERATOR",
+    sequenceName = "MEMBER_SEQ", // 매핑할 데이터베이스 시퀀스 이름
+    initialValue = 1,
+    allocationSize = 1)
+public class Member {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE,
+                    generator = "MEMBER_SEQ_GENERATOR")
+    private Long id;
+
+}
+```
+
+- DB 시퀀스란 유일한 값을 순서대로 생성하는 DB 오브젝트다. PK 생성 시 시퀀스의 도움을 받는다.
+- 주로 Oracle, PostgreSQL, DB2, H2에서 사용한다.
+
+- `@SequenceGenerator`
+  - | option          | description                                                                                                                  | default            |
+    | --------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+    | name            | 식별자 생성기 이름                                                                                                           | 필수               |
+    | sequenceName    | DB에 등록되어 있는 시퀀스 이름                                                                                               | hibernate_sequence |
+    | initialValue    | DDL 생성 시에만 사용됨. 시퀀스 DDL을 생성할 때 처음 시작하는 숫자를 지정한다.                                                | 1                  |
+    | allocationSize  | 시퀀스 한 번 호출에 증가하는 수. <br> **DB 시퀀스 값이 하나씩 증가하도록 설정되어 있으면 이 값을 반드시 1로 설정해야 한다.** | 50                 |
+    | catalog, schema | DB catalog, schema 이름                                                                                                      |                    |
+
+#### `GenerationType.TABLE`
+
+```java
+@Entity
+@TableGenerator(
+    name = "MEMBER_SEQ_GENERATOR",
+    table = "MY_SEQUENCES",
+    pkColumnValue = "MEMBER_SEQ",
+    allocationSize = 1)
+public class Member {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.TABLE,
+                    generator = "MEMBER_SEQ_GENERATOR")
+    private Long id;
+
+}
+```
+
+- 키 생성 전용 테이블을 하나 만들어서 데이터베이스 시퀀스를 흉내내는 전략.
+- 모든 데이터베이스에 사용이 가능하나, 모든 테이블이 하나의 키 생성 전용 테이블을 쳐다보아야 하므로 성능 이슈가 있다.
+
+- `@TableGenerator`
+  - | option                  | description                              | default            |
+    | ----------------------- | ---------------------------------------- | ------------------ |
+    | name                    | 식별자 생성기 이름                       | 필수               |
+    | table                   | 키 생성 테이블 명 이름                   | hibernate_sequence |
+    | pkColumnName            | 시퀀스 컬럼명                            | sequence_name      |
+    | valueColumnName         | 시퀀스 값 컬럼명                         | next_val           |
+    | pkColumnValue           | 키로 사용할 값 이름                      | 엔티티 이름        |
+    | initialValue            | 초기값, 마지막으로 생성된 값이 기준이다. | 0                  |
+    | allocationSize          | 시퀀스 한 번 호출에 증가하는 수.         | 50                 |
+    | catalog, schema         | DB catalog, schema 이름                  |                    |
+    | uniqueConstraints (DDL) | 유니크 제약 조건을 지정할 수 있다.       |                    |
+
+### 권장하는 기본키 전략
+
+- 기본키는 Not NULL이고, 유일하고, 변하면 안된다.
+- 보통 자연키는 변할 가능성이 1%라도 있기 때문에, 대체키를 사용해야 한다. (의미 없는 숫자, String, ...)
+- 권장 : Long + 대체키 + 키 생성전략 사용
