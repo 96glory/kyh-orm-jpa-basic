@@ -174,7 +174,6 @@
       @Column(name = "USERNAME")
       private String name;
 
-      @Setter(AccessLevel.NONE)
       @ManyToOne
       @JoinColumn(name = "TEAM_ID", insertable = false, updateable = false)
       private Team team;
@@ -184,4 +183,63 @@
 
 ## 일대일 | 1:1
 
-## 다대다 | N:N
+- 사용 방법은 다대일 양방향 매핑과 동일하다. `@ManyToOne`/`@OneToMany`를 `@OneToOne`으로 수정하면 된다.
+- 외래 키가 있는 테이블이 반드시 연관관계의 주인이 되어야 한다. 외래 키가 없는 테이블이 주인이 되는 케이스는 JPA에서 지원하지 않는다.
+
+- ```java
+  @Getter
+  @Setter
+  @Entity
+  public class Member {
+
+      @Id
+      @GeneratedValue
+      private Long id;
+
+      @Column(name = "USERNAME")
+      private String name;
+
+      @ManyToOne
+      @JoinColumn(name = "TEAM_ID")
+      private Team team;
+
+      @OneToOne
+      @JoinColumn(name = "LOCKER_ID")
+      private Locker locker;
+
+  }
+  ```
+
+- ```java
+  @Getter
+  @Setter
+  @Entity
+  public class Locker {
+
+      @Id
+      @GeneratedValue
+      @Column(name = "LOCKER_ID")
+      private Long id;
+
+      private String name;
+
+      @OneToOne(mappedBy = "locker")
+      private Member member;
+
+  }
+  ```
+
+- 일대일 특성 상, 주 테이블에 외래 키를 둘 수 있고, 대상 테이블에 외래 키를 둘 수 있다. 어디에 두느냐에 따라 trade-off가 존재한다.
+  - 주 테이블에 외래키를 둔 케이스
+    - ![주 테이블에 외래키를 둔 케이스](./image/06001.png)
+    - JPA 매핑이 편리하여, 객체지향 개발자가 선호한다.
+    - 장점 : 주 테이블만 조회해도 대상 테이블에 데이터가 있는지 확인 가능하다.
+    - 단점 : 값이 없을 수 있어, 외래 키에 null을 허용해야 한다.
+  - 대상 테이블에 외래키를 둔 케이스
+    - ![대상 테이블에 외래키를 둔 케이스](./image/06002.png)
+    - 장점 : 주 테이블과 대상 테이블을 일대일에서 일대다 관계로 변경할 때 쉽다.
+    - 단점 : JPA 프록시 기능의 한계로 지연 로딩으로 설정해도 항상 즉시 로딩된다.
+
+## ~~다대다 | N:N~~
+
+- 실무에서 사용하면 안된다.
