@@ -242,4 +242,132 @@
 
 ## ~~다대다 | N:N~~
 
-- 실무에서 사용하면 안된다.
+- 결론부터 말하면, 실무에서 사용하면 안된다.
+- 테이블은 두 테이블 사이에 연결 테이블을 두어 다대다 관계를 표현이 가능한 반면, 객체는 연결 객체를 두지 않고 다대다 관계를 표현 가능하다.
+  - ![다대다 차이](./image/06003.png)
+- `@ManyToMany`와 `@JoinTable`을 사용하여, DB에 연결 테이블을 자동으로 만들어줄 수 있다.
+
+  - ```java
+    @Getter
+    @Setter
+    @Entity
+    public class Member {
+
+        @Id
+        @GeneratedValue
+        private Long id;
+
+        @ManyToMany
+        @JoinTable(name = "MEMBER_PRODUCT") // 연결 테이블 명을 작성한다.
+        private List<Product> products = new ArrayList<>();
+
+    }
+    ```
+
+  - ```java
+    @Getter
+    @Setter
+    @Entity
+    public class Product {
+
+        @Id
+        @GeneratedValue
+        @Column(name = "PRODUCT_ID")
+        private Long id;
+
+        private String name;
+
+        @ManyToMany(mappedBy = "products")
+        private List<Member> members = new ArrayList<>();
+
+    }
+    ```
+
+  - ```
+    # JPA가 생성한 create 쿼리
+    Hibernate:
+
+        create table Member (
+          id bigint not null,
+            primary key (id)
+        )
+    Hibernate:
+
+        create table MEMBER_PRODUCT (
+          members_id bigint not null,
+            products_PRODUCT_ID bigint not null
+        )
+    Hibernate:
+
+        create table Product (
+          PRODUCT_ID bigint not null,
+            name varchar(255),
+            primary key (PRODUCT_ID)
+        )
+    ```
+
+- `@ManyToMany`와 `@JoinTable`의 한계 : 연결 테이블에 추가 컬럼을 두고 싶은 경우, `@JoinTable`로 이를 구현할 수 없다.
+- 극복 : 연결 테이블을 위한 엔티티를 새로 만들고, 연결 엔티티와 다대일/일대다 관계를 만들자.
+
+  - ![연결 엔티티를 만들어 극복](./image/06004.png)
+
+  - ```java
+    @Getter
+    @Setter
+    @Entity
+    public class Member {
+
+        @Id
+        @GeneratedValue
+        private Long id;
+
+        @OneToMany(mappedBy = "member")
+        private List<MemberProduct> memberProducts = new ArrayList<>();
+
+    }
+    ```
+
+  - ```java
+    @Getter
+    @Setter
+    @Entity
+    public class Product {
+
+        @Id
+        @GeneratedValue
+        @Column(name = "PRODUCT_ID")
+        private Long id;
+
+        private String name;
+
+        @OneToMany(mappedBy = "product")
+        private List<MemberProduct> memberProducts = new ArrayList<>();
+
+    }
+    ```
+
+  - ```java
+    @Getter
+    @Setter
+    @Entity
+    public class MemberProduct {
+
+        @Id
+        @GeneratedValue
+        @Column(name = "MEMBER_PRODUCT_ID")
+        private Long id;
+
+        @ManyToOne
+        @JoinColumn(name = "MEMBER_ID")
+        private Member member;
+
+        @ManyToOne
+        @JoinColumn(name = "PRODUCT_ID")
+        private Product product;
+
+        private int count;
+
+        private int price;
+
+    }
+    ```
