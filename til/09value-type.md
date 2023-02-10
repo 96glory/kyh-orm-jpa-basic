@@ -99,3 +99,85 @@
   - ![임베디드 타입 사용 시 테이블 매핑](./image/09003.png)
   - 임베디드 타입은 엔티티의 값일 뿐, 임베디드 타입 사용 전후 테이블의 변화는 없다.
 - 임베디드 타입을 사용한 엔티티에서 임베디드 타입 값이 null이면, 매핑된 모든 컬럼의 값은 null로 들어간다.
+
+## 값 타입은 불변 객체로 만들어야 한다.
+
+- 임베디드 타입과 같이 객체인 값 타입은 공유될 수 있는 위험이 있다.
+
+  - 객체와 기본 타입의 차이
+    - 자바의 기본 타입의 경우
+      - ```java
+        int a = 10;
+        int b = a; // 10이라는 값을 복사해서 b에 넣어준다.
+        b = 4;
+        // a = 10, b = 4
+        ```
+    - 자바의 객체 타입의 경우
+      - ```java
+        Address a = new Address("Old");
+        Address b = a; // city = "Old"인 인스턴스의 참조를 전달한다.
+        b.setCity("New");
+        // a.city = "New", b.city = "New"
+        ```
+  - 위험이 발생하는 경우 예시
+
+    - ```java
+      Address address = new Address("Old");
+      Member member1 = new Member(address);
+      Member member2 = new Member(address);
+      em.persist(member1);
+      em.persist(member2);
+
+      // ...
+
+      member1.getAddress().setCity("New");
+      em.persist(member1);
+      // member1의 address는 member2와 공유하고 있어, member1, member2의 address.city가 변경된다.
+      ```
+
+- 객체인 값 타입을 수정할 수 없게, setter를 없애거나 private로 선언하여 불변 객체로 만들어야 한다.
+  - ```java
+    @Getter
+    @Setter(value = AccessLevel.PRIVATE)
+    @Embeddable
+    public class Period {
+        private LocalDateTime startDate;
+        private LocalDateTime endDate;
+    }
+    ```
+
+## 값 타입 비교
+
+- 값 타입의 경우 인스턴스가 달라도 그 안에 값들이 같으면 같은 것으로 봐야 한다.
+- 객체끼리의 동등 비교 `==`는 인스턴스의 참조 값을 비교하므로, 우리가 원하는 값 타입 비교의 결과에 맞지 않다. 따라서, Object의 `equals()`를 오버라이드하여 동등성 비교를 해야 한다.
+
+```java
+@Getter
+@Setter(value = AccessLevel.PRIVATE)
+@Embeddable
+public class Address {
+
+    private String city;
+    private String street;
+    private String zipcode;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Address address = (Address) o;
+        return Objects.equals(city, address.city) && Objects.equals(street, address.street)
+            && Objects.equals(zipcode, address.zipcode);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(city, street, zipcode);
+    }
+}
+
+```
