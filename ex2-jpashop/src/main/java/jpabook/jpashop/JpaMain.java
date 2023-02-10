@@ -4,7 +4,9 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
+import jpabook.jpashop.domain.Address;
 import jpabook.jpashop.domain.Book;
+import jpabook.jpashop.domain.Member;
 
 public class JpaMain {
 
@@ -19,16 +21,16 @@ public class JpaMain {
 
         try {
 
-            Book book = new Book();
-            book.setName("JPA");
-            book.setAuthor("glory");
+            Member member = new Member();
+            member.setAddress(new Address("1111111111", "11111111111", "1111111111"));
 
-            em.persist(book);
+            em.persist(member);
 
 
             tx.commit();
         } catch (Exception e) {
             tx.rollback();
+            e.printStackTrace();
         } finally {
             em.close();
         }
