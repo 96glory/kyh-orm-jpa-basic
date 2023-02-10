@@ -179,5 +179,187 @@ public class Address {
         return Objects.hash(city, street, zipcode);
     }
 }
-
 ```
+
+## 값 타입 컬렉션
+
+- 일대다 관계가 아닌, 값 타입의 컬렉션(List, Set, ...)을 한 엔티티 안에서 관리하는 케이스다.
+- 데이터베이스는 한 행에 여러 값을 가지지 못하므로, 컬렉션을 위한 별도의 테이블을 만들어주어야 한다.
+
+- ![값 타입 컬렉션 예시](./image/09004.png)
+
+```java
+@Getter
+@Setter
+@Entity
+public class Member {
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    @Column(name = "USERNAME")
+    private String name;
+
+    @Embedded
+    private Address homeAddress;
+
+    @ElementCollection
+    @CollectionTable(name = "FAVORITE_FOOD", joinColumns = @JoinColumn(name = "MEMBER_ID"))
+    @Column(name = "FOOD_NAME")
+    private Set<String> favoriteFoods = new HashSet<>();
+
+    @ElementCollection
+    @CollectionTable(name = "ADDRESS", joinColumns = @JoinColumn(name = "MEMBER_ID"))
+    private List<Address> addressHistory = new ArrayList<>();
+}
+```
+
+```java
+@Getter
+@Setter(value = AccessLevel.PRIVATE)
+@Embeddable
+public class Address {
+
+    private String city;
+    private String street;
+    private String zipcode;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Address address = (Address) o;
+        return Objects.equals(city, address.city) && Objects.equals(street, address.street)
+            && Objects.equals(zipcode, address.zipcode);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(city, street, zipcode);
+    }
+}
+```
+
+```java
+// main 함수
+
+// 기본 데이터 저장
+Member member = new Member();
+member.setName("member1");
+member.setHomeAddress(new Address("homeCity", "street", "10000"));
+
+member.getFavoriteFoods().add("chicken");
+member.getFavoriteFoods().add("sushi");
+member.getFavoriteFoods().add("ramen");
+
+member.getAddressHistory().add(new Address("old1", "street", "10000"));
+member.getAddressHistory().add(new Address("old2", "street", "10000"));
+
+em.persist(member);
+
+em.flush();
+em.clear();
+
+// ... DB 쿼리 수행 사진 이후 main 함수 이어짐 ...
+```
+
+![기본 데이터 저장](./image/09005.png)
+
+```java
+// 값 타입 데이터 조회하기
+Member findMember = em.find(Member.class, member.getId());
+
+// 값 타입 컬렉션은 기본적으로 지연 로딩 전략이 들어가 있어, 메서드 호출 직전까지 DB에서 가져오지 않는다.
+
+List<Address> addressHistory = findMember.getAddressHistory();
+for (Address address : addressHistory) {
+    System.out.println("address.getCity() = " + address.getCity());
+}
+
+Set<String> favoriteFoods = findMember.getFavoriteFoods();
+for (String favoriteFood : favoriteFoods) {
+    System.out.println("favoriteFood = " + favoriteFood);
+}
+
+// 값 타입 수정
+Address oldAddress = findMember.getHomeAddress();
+findMember.setHomeAddress(
+    new Address("newCity", oldAddress.getStreet(), oldAddress.getZipcode()));
+
+// 값 타입 컬렉션 수정
+findMember.getFavoriteFoods().remove("chicken");
+findMember.getFavoriteFoods().add("pizza");
+
+// 임베디드 타입 컬렉션 수정
+findMember.getAddressHistory().remove(new Address("old1", "street", "10000"));
+findMember.getAddressHistory().add(new Address("newCity1", "street", "10000"));
+```
+
+- 값 타입 컬렉션의 한계
+
+  - 값 타입 컬렉션이 변경되면, 식별자가 없어 추적이 어렵다.
+  - 값 타입 컬렉션이 변경되면, 주인 엔티티와 연관된 모든 데이터를 DELETE하고, 값 타입 컬렉션에 있는 현재 값을 모두 INSERT한다.
+
+- 값 타입 컬렉션의 극복
+
+  - 값 타입 컬렉션을 매핑하는 테이블은 모든 컬럼을 묶어서 기본키로 구성해야 한다.
+  - 값 타입 컬렉션이 아닌, 일대다 관계를 고려해야 한다.
+
+    - 영속성 전이 + 고아 객체 제거 옵션을 사용하면 값 타입 컬렉션처럼 사용 가능하다.
+
+    - ```java
+      @Getter
+      @Setter
+      @Entity
+      public class Member {
+          @Id
+          @GeneratedValue
+          private Long id;
+
+          @Column(name = "USERNAME")
+          private String name;
+
+          @Embedded
+          private Address homeAddress;
+
+          @ElementCollection
+          @CollectionTable(name = "FAVORITE_FOOD", joinColumns = @JoinColumn(name = "MEMBER_ID"))
+          @Column(name = "FOOD_NAME")
+          private Set<String> favoriteFoods = new HashSet<>();
+
+          @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+          @JoinColumn(name = "MEMBER_ID")
+          private List<AddressEntity> addressHistory = new ArrayList<>();
+      }
+      ```
+
+    - ```java
+      @Getter
+      @Setter
+      @NoArgsConstructor
+      @Entity
+      @Table(name = "ADDRESS")
+      public class AddressEntity {
+
+          public AddressEntity(Address address) {
+              this.address = address;
+          }
+
+          @Id
+          @GeneratedValue
+          private Long id;
+
+          private Address address;
+
+      }
+      ```
+
+## 결론
+
+- 값 타입은 정말 값 타입이라 판단될 때만 사용하자.
+- 엔티티와 값 타입을 혼동해서 엔티티를 값 타입으로 만들면 안된다.
+- 식별자가 필요하거나, 지속해서 값을 추적해야 한다면 엔티티를 채택해야 한다.

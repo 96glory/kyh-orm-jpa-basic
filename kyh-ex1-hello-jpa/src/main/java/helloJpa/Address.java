@@ -3,11 +3,15 @@ package helloJpa;
 import java.util.Objects;
 import javax.persistence.Embeddable;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter(value = AccessLevel.PRIVATE)
+@NoArgsConstructor
+@AllArgsConstructor
 @Embeddable
 public class Address {
 
