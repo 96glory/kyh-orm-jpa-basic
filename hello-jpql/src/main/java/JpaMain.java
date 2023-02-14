@@ -6,6 +6,7 @@ import javax.persistence.Persistence;
 import jpql.Member;
 import jpql.MemberDTO;
 import jpql.MemberType;
+import jpql.Team;
 
 public class JpaMain {
 
@@ -20,17 +21,30 @@ public class JpaMain {
 
         try {
 
+            Team team1 = new Team();
+            team1.setName("team1");
+            em.persist(team1);
+
+            Team team2 = new Team();
+            team2.setName("team2");
+            em.persist(team2);
+
             Member member1 = new Member();
-            member1.setUsername("member1");
-            member1.setAge(10);
-            member1.setType(MemberType.ADMIN);
+            member1.setUsername("team1");
+            member1.setTeam(team1);
             em.persist(member1);
 
             Member member2 = new Member();
             member2.setUsername("member2");
-            member2.setAge(10);
-            member2.setType(MemberType.ADMIN);
+            member2.setTeam(team2);
             em.persist(member2);
+
+            String sql = "SELECT m FROM Member m JOIN Team t on m.username = t.name";
+
+            List<Member> resultList = em.createQuery(sql, Member.class).getResultList();
+            for (Member member : resultList) {
+                System.out.println("member = " + member);
+            }
 
 //            List<Member> resultList = em.createQuery("select m from Member m", Member.class)
 //                .getResultList();
@@ -90,8 +104,8 @@ public class JpaMain {
 //                System.out.println("member = " + member);
 //            }
 
-            int resultCount = em.createQuery("update Member m set m.age = 20").executeUpdate();
-            System.out.println("resultCount = " + resultCount);
+//            int resultCount = em.createQuery("update Member m set m.age = 20").executeUpdate();
+//            System.out.println("resultCount = " + resultCount);
 
             tx.commit();
         } catch (Exception e) {

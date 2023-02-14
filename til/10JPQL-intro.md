@@ -90,5 +90,3 @@ List<Member> resultList = em.createNativeQuery(sql, Member.class).getResultList(
 
 - MyBatis, IBatis, JDBCTemplate, ... 또한 같이 사용할 수 있다.
 - 위 라이브러리 사용 시 영속성 컨텍스트에 접근할 일이 생기기 전에, 수동 플러시를 해줘야 한다.
-
-## JPQL (Java Persistence Query Language)
